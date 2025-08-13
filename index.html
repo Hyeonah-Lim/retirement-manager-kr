@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정년퇴직 관리 시스템</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .input-section {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        input[type="text"], input[type="date"], input[type="file"] {
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 14px;
+            flex: 1;
+        }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="file"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .btn-danger {
+            background: #e74c3c;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .employee-list, .yearly-summary {
+            background: white;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .employee-item, .year-item {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background 0.2s;
+        }
+        .employee-item:hover, .year-item:hover {
+            background: #f8f9fa;
+        }
+        .employee-item:last-child, .year-item:last-child {
+            border-bottom: none;
+        }
+        .employee-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .retirement-info {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .year-header {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .year-employees {
+            margin-left: 15px;
+        }
+        .year-employee {
+            margin: 5px 0;
+            padding: 5px 0;
+        }
+        .urgent {
+            background: #fff5f5;
+            border-left: 4px solid #e74c3c;
+        }
+        .soon {
+            background: #fff8e1;
+            border-left: 4px solid #f39c12;
+        }
+        .normal {
+            background: #f0f9ff;
+            border-left: 4px solid #3498db;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .empty-state {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>정년퇴직 관리 시스템</h1>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
+            근로기준법 제19조에 따른 법정 정년 60세 기준
+        </p>
+        
+        <div class="input-section">
+            <h3>직원 정보 입력</h3>
+            <div class="form-row">
+                <input type="text" id="employeeName" placeholder="직원 이름" />
+                <input type="date" id="birthDate" />
+                <button onclick="addEmployee()">추가</button>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #bdc3c7;">
+                <h4 style="margin-bottom: 15px; color: #2c3e50;">엑셀 파일 가져오기</h4>
+                <div class="form-row">
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="flex: 2;" />
+                    <button onclick="importExcel()">파일 가져오기</button>
+                    <button onclick="downloadTemplate()" style="background: #27ae60;">템플릿 다운로드</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
+                    * 엑셀 파일 형식: A열(이름), B열(생년월일 YYYY-MM-DD) | 첫 번째 행은 제목행으로 처리됩니다
+                </div>
+            </div>
+        </div>
+
+        <div class="stats" id="statsSection" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalEmployees">0</div>
+                <div class="stat-label">총 직원 수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="thisYearRetirement">0</div>
+                <div class="stat-label">올해 정년퇴직</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="nextYearRetirement">0</div>
+                <div class="stat-label">내년 정년퇴직</div>
+            </div>
+        </div>
+
+        <div class="export-section" id="exportSection" style="display: none;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #2c3e50;">데이터 내보내기</h3>
+                <div class="form-row">
+                    <button onclick="exportToExcel('all')" style="background: #27ae60;">전체 데이터 내보내기</button>
+                    <button onclick="exportToExcel('thisYear')" style="background: #e74c3c;">올해 정년퇴직자</button>
+                    <button onclick="exportToExcel('nextYear')" style="background: #f39c12;">내년 정년퇴직자</button>
+                    <button onclick="exportYearlySummary()" style="background: #9b59b6;">연도별 요약</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results" id="resultsSection" style="display: none;">
+            <div class="employee-list">
+                <div class="section-header">직원별 정년퇴직 정보</div>
+                <div id="employeeResults"></div>
+            </div>
+            
+            <div class="yearly-summary">
+                <div class="section-header">연도별 정년퇴직 예정자</div>
+                <div id="yearlyResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        let employees = [];
+        const RETIREMENT_AGE = 60;
+        
+        function addEmployee() {
+            const name = document.getElementById('employeeName').value.trim();
+            const birthDate = document.getElementById('birthDate').value;
+            
+            if (!name || !birthDate) {
+                alert('이름과 생년월일을 모두 입력해주세요.');
+                return;
+            }
+            
+            // 중복 확인
+            if (employees.some(emp => emp.name === name && emp.birthDate === birthDate)) {
+                alert('이미 등록된 직원입니다.');
+                return;
+            }
+            
+            const birth = new Date(birthDate);
+            const retirementDate = calculateRetirementDate(birth);
+            
+            employees.push({
+                name: name,
+                birthDate: birthDate,
+                birth: birth,
+                retirementDate: retirementDate,
+                retirementYear: retirementDate.getFullYear()
+            });
+            
+            // 입력 필드 초기화
+            document.getElementById('employeeName').value = '';
+            document.getElementById('birthDate').value = '';
+            
+            updateDisplay();
+        }
+        
+        function importExcel() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('엑셀 파일을 선택해주세요.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    
+                    let importCount = 0;
+                    let skipCount = 0;
+                    let errorCount = 0;
+                    
+                    // 첫 번째 행은 헤더로 건너뛰기
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row[0] || !row[1]) continue; // 빈 행 건너뛰기
+                        
+                        const name = String(row[0]).trim();
+                        let birthDateStr = row[1];
+                        
+                        // 엑셀 날짜 처리
+                        if (typeof birthDateStr === 'number') {
+                            // 엑셀 시리얼 날짜를 JavaScript 날짜로 변환
+                            const excelEpoch = new Date(1900, 0, 1);
+                            const birth = new Date(excelEpoch.getTime() + (birthDateStr - 2) * 86400000);
+                            birthDateStr = birth.toISOString().split('T')[0];
+                        } else if (birthDateStr instanceof Date) {
+                            birthDateStr = birthDateStr.toISOString().split('T')[0];
+                        } else {
+                            // 문자열인 경우 날짜 형식 검증
+                            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                            if (!dateRegex.test(birthDateStr)) {
+                                console.error(`잘못된 날짜 형식: ${name} - ${birthDateStr}`);
+                                errorCount++;
+                                continue;
+                            }
+                        }
+                        
+                        // 중복 확인
+                        if (employees.some(emp => emp.name === name && emp.birthDate === birthDateStr)) {
+                            skipCount++;
+                            continue;
+                        }
+                        
+                        // 유효한 날짜인지 확인
+                        const birth = new Date(birthDateStr);
+                        if (isNaN(birth.getTime())) {
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        const retirementDate = calculateRetirementDate(birth);
+                        
+                        employees.push({
+                            name: name,
+                            birthDate: birthDateStr,
+                            birth: birth,
+                            retirementDate: retirementDate,
+                            retirementYear: retirementDate.getFullYear()
+                        });
+                        
+                        importCount++;
+                    }
+                    
+                    // 결과 메시지
+                    let message = `가져오기 완료!\n`;
+                    message += `- 신규 등록: ${importCount}명\n`;
+                    if (skipCount > 0) message += `- 중복 건너뛰기: ${skipCount}명\n`;
+                    if (errorCount > 0) message += `- 오류 건너뛰기: ${errorCount}명\n`;
+                    
+                    alert(message);
+                    
+                    // 파일 입력 초기화
+                    fileInput.value = '';
+                    
+                    updateDisplay();
+                    
+                } catch (error) {
+                    console.error('파일 처리 오류:', error);
+                    alert('엑셀 파일을 읽는 중 오류가 발생했습니다.\n파일 형식을 확인해주세요.');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function downloadTemplate() {
+            // 템플릿 데이터 생성
+            const templateData = [
+                ['이름', '생년월일'],
+                ['홍길동', '1964-03-15'],
+                ['김철수', '1965-07-22'],
+                ['이영희', '1966-12-03']
+            ];
+            
+            // 워크북 생성
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            
+            // 열 너비 설정
+            ws['!cols'] = [
+                {wch: 15}, // 이름 열
+                {wch: 15}  // 생년월일 열
+            ];
+            
+            // 헤더 스타일 적용 (간단한 방법)
+            XLSX.utils.book_append_sheet(wb, ws, '직원정보');
+            
+            // 파일 다운로드
+            XLSX.writeFile(wb, '직원정보_템플릿.xlsx');
+        }
+        
+        function exportToExcel(type) {
+            if (employees.length === 0) {
+                alert('내보낼 데이터가 없습니다.');
+                return;
+            }
+            
+            let filteredEmployees = [];
+            let fileName = '';
+            const currentYear = new Date().getFullYear();
+            
+            switch(type) {
+                case 'all':
+                    filteredEmployees = [...employees];
+                    fileName = '전체_직원_정년퇴직_정보';
+                    break;
+                case 'thisYear':
+                    filteredEmployees = employees.filter(emp => emp.retirementYear === currentYear);
+                    fileName = `${currentYear}년_정년퇴직_예정자`;
+                    break;
+                case 'nextYear':
+                    filteredEmployees = employees.filter(emp => emp.retirementYear === currentYear + 1);
+                    fileName = `${currentYear + 1}년_정년퇴직_예정자`;
+                    break;
+            }
+            
+            if (filteredEmployees.length === 0) {
+                alert('해당 조건에 맞는 데이터가 없습니다.');
+                return;
+            }
+            
+            // 정년퇴직일 기준으로 정렬
+            filteredEmployees.sort((a, b) => a.retirementDate - b.retirementDate);
+            
+            // 엑셀 데이터 구성
+            const excelData = [
+                ['이름', '생년월일', '현재나이', '정년퇴직일', '정년퇴직년도', '남은일수']
+            ];
+            
+            const today = new Date();
+            filteredEmployees.forEach(emp => {
+                const age = today.getFullYear() - emp.birth.getFullYear();
+                const remainingDays = Math.ceil((emp.retirementDate - today) / (1000 * 60 * 60 * 24));
+                
+                excelData.push([
+                    emp.name,
+                    emp.birthDate,
+                    age + '세',
+                    emp.retirementDate.toISOString().split('T')[0],
+                    emp.retirementYear,
+                    remainingDays > 0 ? remainingDays + '일' : '퇴직완료'
+                ]);
+            });
+            
+            // 워크북 생성
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // 열 너비 설정
+            ws['!cols'] = [
+                {wch: 12}, // 이름
+                {wch: 12}, // 생년월일
+                {wch: 10}, // 현재나이
+                {wch: 12}, // 정년퇴직일
+                {wch: 12}, // 정년퇴직년도
+                {wch: 10}  // 남은일수
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, '정년퇴직정보');
+            
+            // 파일 다운로드
+            const timestamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `${fileName}_${timestamp}.xlsx`);
+        }
+        
+        function exportYearlySummary() {
+            if (employees.length === 0) {
+                alert('내보낼 데이터가 없습니다.');
+                return;
+            }
+            
+            // 연도별로 그룹화
+            const yearGroups = {};
+            employees.forEach(emp => {
+                const year = emp.retirementYear;
+                if (!yearGroups[year]) {
+                    yearGroups[year] = [];
+                }
+                yearGroups[year].push(emp);
+            });
+            
+            // 워크북 생성
+            const wb = XLSX.utils.book_new();
+            
+            // 요약 시트 생성
+            const summaryData = [
+                ['정년퇴직년도', '퇴직예정인원', '비율(%)'],
+                []
+            ];
+            
+            const totalEmployees = employees.length;
+            const sortedYears = Object.keys(yearGroups).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            sortedYears.forEach(year => {
+                const count = yearGroups[year].length;
+                const percentage = ((count / totalEmployees) * 100).toFixed(1);
+                summaryData.push([year + '년', count + '명', percentage + '%']);
+            });
+            
+            summaryData.push([]);
+            summaryData.push(['총 직원 수', totalEmployees + '명', '100.0%']);
+            
+            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+            summaryWs['!cols'] = [{wch: 15}, {wch: 15}, {wch: 10}];
+            XLSX.utils.book_append_sheet(wb, summaryWs, '연도별요약');
+            
+            // 각 연도별 상세 시트 생성
+            sortedYears.forEach(year => {
+                const yearEmployees = yearGroups[year].sort((a, b) => a.retirementDate - b.retirementDate);
+                const yearData = [
+                    ['이름', '생년월일', '정년퇴직일', '현재나이']
+                ];
+                
+                const today = new Date();
+                yearEmployees.forEach(emp => {
+                    const age = today.getFullYear() - emp.birth.getFullYear();
+                    yearData.push([
+                        emp.name,
+                        emp.birthDate,
+                        emp.retirementDate.toISOString().split('T')[0],
+                        age + '세'
+                    ]);
+                });
+                
+                const yearWs = XLSX.utils.aoa_to_sheet(yearData);
+                yearWs['!cols'] = [{wch: 12}, {wch: 12}, {wch: 12}, {wch: 10}];
+                XLSX.utils.book_append_sheet(wb, yearWs, year + '년');
+            });
+            
+            // 파일 다운로드
+            const timestamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `연도별_정년퇴직_요약_${timestamp}.xlsx`);
+        }
+        
+        function calculateRetirementDate(birthDate) {
+            const retirement = new Date(birthDate);
+            retirement.setFullYear(retirement.getFullYear() + RETIREMENT_AGE);
+            return retirement;
+        }
+        
+        function formatDate(date) {
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        
+        function getUrgencyClass(retirementDate) {
+            const today = new Date();
+            const daysDiff = Math.ceil((retirementDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff <= 365) return 'urgent';
+            if (daysDiff <= 730) return 'soon';
+            return 'normal';
+        }
+        
+        function updateDisplay() {
+            if (employees.length === 0) {
+                document.getElementById('resultsSection').style.display = 'none';
+                document.getElementById('statsSection').style.display = 'none';
+                document.getElementById('exportSection').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('resultsSection').style.display = 'grid';
+            document.getElementById('statsSection').style.display = 'grid';
+            document.getElementById('exportSection').style.display = 'block';
+            
+            updateStats();
+            updateEmployeeList();
+            updateYearlySummary();
+        }
+        
+        function updateStats() {
+            const currentYear = new Date().getFullYear();
+            const thisYear = employees.filter(emp => emp.retirementYear === currentYear).length;
+            const nextYear = employees.filter(emp => emp.retirementYear === currentYear + 1).length;
+            
+            document.getElementById('totalEmployees').textContent = employees.length;
+            document.getElementById('thisYearRetirement').textContent = thisYear;
+            document.getElementById('nextYearRetirement').textContent = nextYear;
+        }
+        
+        function updateEmployeeList() {
+            const container = document.getElementById('employeeResults');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<div class="empty-state">등록된 직원이 없습니다.</div>';
+                return;
+            }
+            
+            // 정년퇴직일 기준으로 정렬
+            const sortedEmployees = [...employees].sort((a, b) => a.retirementDate - b.retirementDate);
+            
+            container.innerHTML = sortedEmployees.map(emp => {
+                const age = new Date().getFullYear() - emp.birth.getFullYear();
+                const urgencyClass = getUrgencyClass(emp.retirementDate);
+                
+                return `
+                    <div class="employee-item ${urgencyClass}">
+                        <div class="employee-name">${emp.name}</div>
+                        <div class="retirement-info">
+                            생년월일: ${formatDate(emp.birth)}<br>
+                            현재 나이: ${age}세<br>
+                            정년퇴직일: ${formatDate(emp.retirementDate)}
+                        </div>
+                        <button class="btn-danger" onclick="removeEmployee('${emp.name}', '${emp.birthDate}')" style="margin-top: 10px; font-size: 12px; padding: 5px 10px;">삭제</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateYearlySummary() {
+            const container = document.getElementById('yearlyResults');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<div class="empty-state">등록된 직원이 없습니다.</div>';
+                return;
+            }
+            
+            // 연도별로 그룹화
+            const yearGroups = {};
+            employees.forEach(emp => {
+                const year = emp.retirementYear;
+                if (!yearGroups[year]) {
+                    yearGroups[year] = [];
+                }
+                yearGroups[year].push(emp);
+            });
+            
+            // 연도 순으로 정렬
+            const sortedYears = Object.keys(yearGroups).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            container.innerHTML = sortedYears.map(year => {
+                const yearEmployees = yearGroups[year].sort((a, b) => a.retirementDate - b.retirementDate);
+                
+                return `
+                    <div class="year-item">
+                        <div class="year-header">${year}년 (${yearEmployees.length}명)</div>
+                        <div class="year-employees">
+                            ${yearEmployees.map(emp => `
+                                <div class="year-employee">
+                                    <strong>${emp.name}</strong> - ${formatDate(emp.retirementDate)}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function removeEmployee(name, birthDate) {
+            if (confirm(`${name} 직원 정보를 삭제하시겠습니까?`)) {
+                employees = employees.filter(emp => !(emp.name === name && emp.birthDate === birthDate));
+                updateDisplay();
+            }
+        }
+        
+        // 엔터 키 입력 처리
+        document.getElementById('employeeName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('birthDate').focus();
+            }
+        });
+        
+        document.getElementById('birthDate').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addEmployee();
+            }
+        });
+    </script>
+</body>
+</html>
