@@ -170,6 +170,10 @@
             근로기준법 제19조에 따른 법정 정년 60세 기준
         </p>
         
+        <div style="text-align: center; margin-bottom: 20px; font-size: 12px; color: #95a5a6;">
+            © 2024 Sungrak Church Office. All rights reserved.
+        </div>
+        
         <div class="input-section">
             <h3>직원 정보 입력</h3>
             <div class="form-row">
@@ -283,6 +287,8 @@
             
             return null;
         }
+        
+        function parseSocialNumber(socialNumber) {
             if (!socialNumber || socialNumber.length !== 6) {
                 return null;
             }
@@ -319,6 +325,42 @@
             
             return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         }
+            if (!socialNumber || socialNumber.length !== 6) {
+                return null;
+            }
+            
+            // 숫자만 있는지 확인
+            if (!/^\d{6}$/.test(socialNumber)) {
+                return null;
+            }
+            
+            const year = parseInt(socialNumber.substring(0, 2));
+            const month = parseInt(socialNumber.substring(2, 4));
+            const day = parseInt(socialNumber.substring(4, 6));
+            
+            // 월과 일 유효성 검사
+            if (month < 1 || month > 12 || day < 1 || day > 31) {
+                return null;
+            }
+            
+            // 년도 계산 (일반적으로 00-30은 2000년대, 31-99는 1900년대로 처리)
+            let fullYear;
+            if (year <= 30) {
+                fullYear = 2000 + year;
+            } else {
+                fullYear = 1900 + year;
+            }
+            
+            // 날짜 유효성 최종 검사
+            const testDate = new Date(fullYear, month - 1, day);
+            if (testDate.getFullYear() !== fullYear || 
+                testDate.getMonth() !== month - 1 || 
+                testDate.getDate() !== day) {
+                return null;
+            }
+            
+            return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        
         
         function addEmployee() {
             const name = document.getElementById('employeeName').value.trim();
