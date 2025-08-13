@@ -155,6 +155,79 @@
             font-size: 14px;
             opacity: 0.9;
         }
+        .export-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+        }
+        .preview-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80%;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .preview-header {
+            background: #34495e;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-header h3 {
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+        .preview-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .preview-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .preview-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
         .empty-state {
             text-align: center;
             color: #7f8c8d;
@@ -171,7 +244,7 @@
         </p>
         
         <div style="text-align: center; margin-bottom: 20px; font-size: 12px; color: #95a5a6;">
-            © 2025 Sungrak Church Office. All rights reserved.
+            © 2024 Sungrak Church Office. All rights reserved.
         </div>
         
         <div class="input-section">
@@ -215,13 +288,30 @@
         </div>
 
         <div class="export-section" id="exportSection" style="display: none;">
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div class="export-section">
                 <h3 style="margin-top: 0; color: #2c3e50;">데이터 내보내기</h3>
                 <div class="form-row">
-                    <button onclick="exportToExcel('all')" style="background: #27ae60;">전체 데이터 내보내기</button>
-                    <button onclick="exportToExcel('thisYear')" style="background: #e74c3c;">올해 정년퇴직자</button>
-                    <button onclick="exportToExcel('nextYear')" style="background: #f39c12;">내년 정년퇴직자</button>
-                    <button onclick="exportYearlySummary()" style="background: #9b59b6;">연도별 요약</button>
+                    <button onclick="previewExport('all')" style="background: #27ae60;">전체 데이터 미리보기</button>
+                    <button onclick="previewExport('thisYear')" style="background: #e74c3c;">올해 정년퇴직자 미리보기</button>
+                    <button onclick="previewExport('nextYear')" style="background: #f39c12;">내년 정년퇴직자 미리보기</button>
+                    <button onclick="previewYearlySummary()" style="background: #9b59b6;">연도별 요약 미리보기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 미리보기 모달 -->
+        <div class="preview-modal" id="previewModal">
+            <div class="preview-content">
+                <div class="preview-header">
+                    <h3 id="previewTitle">데이터 미리보기</h3>
+                    <button class="close-btn" onclick="closePreview()">&times;</button>
+                </div>
+                <div class="preview-body" id="previewBody">
+                    <!-- 미리보기 내용이 여기에 표시됩니다 -->
+                </div>
+                <div class="preview-footer">
+                    <button onclick="closePreview()" style="background: #95a5a6;">취소</button>
+                    <button id="downloadBtn" onclick="confirmDownload()" style="background: #27ae60;">엑셀 다운로드</button>
                 </div>
             </div>
         </div>
@@ -498,28 +588,35 @@
             XLSX.writeFile(wb, '직원정보_템플릿.xlsx');
         }
         
-        function exportToExcel(type) {
+        let currentExportData = null;
+        let currentExportType = null;
+        let currentFileName = '';
+        
+        function previewExport(type) {
             if (employees.length === 0) {
                 alert('내보낼 데이터가 없습니다.');
                 return;
             }
             
             let filteredEmployees = [];
-            let fileName = '';
+            let title = '';
             const currentYear = new Date().getFullYear();
             
             switch(type) {
                 case 'all':
                     filteredEmployees = [...employees];
-                    fileName = '전체_직원_정년퇴직_정보';
+                    title = '전체 직원 정년퇴직 정보';
+                    currentFileName = '전체_직원_정년퇴직_정보';
                     break;
                 case 'thisYear':
                     filteredEmployees = employees.filter(emp => emp.retirementYear === currentYear);
-                    fileName = `${currentYear}년_정년퇴직_예정자`;
+                    title = `${currentYear}년 정년퇴직 예정자`;
+                    currentFileName = `${currentYear}년_정년퇴직_예정자`;
                     break;
                 case 'nextYear':
                     filteredEmployees = employees.filter(emp => emp.retirementYear === currentYear + 1);
-                    fileName = `${currentYear + 1}년_정년퇴직_예정자`;
+                    title = `${currentYear + 1}년 정년퇴직 예정자`;
+                    currentFileName = `${currentYear + 1}년_정년퇴직_예정자`;
                     break;
             }
             
@@ -551,28 +648,12 @@
                 ]);
             });
             
-            // 워크북 생성
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(excelData);
-            
-            // 열 너비 설정
-            ws['!cols'] = [
-                {wch: 12}, // 이름
-                {wch: 12}, // 생년월일
-                {wch: 10}, // 현재나이
-                {wch: 12}, // 정년퇴직일
-                {wch: 12}, // 정년퇴직년도
-                {wch: 10}  // 남은일수
-            ];
-            
-            XLSX.utils.book_append_sheet(wb, ws, '정년퇴직정보');
-            
-            // 파일 다운로드
-            const timestamp = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `${fileName}_${timestamp}.xlsx`);
+            currentExportData = excelData;
+            currentExportType = 'normal';
+            showPreview(title, excelData);
         }
         
-        function exportYearlySummary() {
+        function previewYearlySummary() {
             if (employees.length === 0) {
                 alert('내보낼 데이터가 없습니다.');
                 return;
@@ -588,30 +669,112 @@
                 yearGroups[year].push(emp);
             });
             
+            const sortedYears = Object.keys(yearGroups).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            // 연도별 인원 데이터 구성
+            const summaryData = [
+                ['정년퇴직년도', '퇴직예정인원']
+            ];
+            
+            sortedYears.forEach(year => {
+                const count = yearGroups[year].length;
+                summaryData.push([year + '년', count + '명']);
+            });
+            
+            currentExportData = { summaryData, yearGroups, sortedYears };
+            currentExportType = 'summary';
+            currentFileName = '연도별_정년퇴직_인원';
+            showPreview('연도별 정년퇴직 인원', summaryData);
+        }
+        
+        function showPreview(title, data) {
+            document.getElementById('previewTitle').textContent = title + ' 미리보기';
+            
+            let html = `
+                <div style="margin-bottom: 15px; color: #7f8c8d;">
+                    총 ${data.length - 1}건의 데이터 (제목행 제외)
+                </div>
+                <table class="preview-table">
+            `;
+            
+            data.forEach((row, index) => {
+                html += '<tr>';
+                row.forEach(cell => {
+                    const tag = index === 0 ? 'th' : 'td';
+                    html += `<${tag}>${cell}</${tag}>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            
+            if (currentExportType === 'summary') {
+                html += `
+                    <div style="margin-top: 20px; padding: 15px; background: #e8f4fd; border-radius: 5px;">
+                        <strong>💡 참고사항:</strong><br>
+                        연도별 인원 다운로드 시 위 요약표와 함께 각 연도별 상세 시트가 포함됩니다.
+                    </div>
+                `;
+            }
+            
+            document.getElementById('previewBody').innerHTML = html;
+            document.getElementById('previewModal').style.display = 'block';
+        }
+        
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+            currentExportData = null;
+            currentExportType = null;
+            currentFileName = '';
+        }
+        
+        function confirmDownload() {
+            if (!currentExportData || !currentExportType) {
+                alert('다운로드할 데이터가 없습니다.');
+                return;
+            }
+            
+            if (currentExportType === 'normal') {
+                downloadNormalExcel();
+            } else if (currentExportType === 'summary') {
+                downloadSummaryExcel();
+            }
+            
+            closePreview();
+        }
+        
+        function downloadNormalExcel() {
+            // 워크북 생성
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(currentExportData);
+            
+            // 열 너비 설정
+            ws['!cols'] = [
+                {wch: 12}, // 이름
+                {wch: 12}, // 생년월일
+                {wch: 10}, // 현재나이
+                {wch: 12}, // 정년퇴직일
+                {wch: 12}, // 정년퇴직년도
+                {wch: 10}  // 남은일수
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, '정년퇴직정보');
+            
+            // 파일 다운로드
+            const timestamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `${currentFileName}_${timestamp}.xlsx`);
+        }
+        
+        function downloadSummaryExcel() {
+            const { summaryData, yearGroups, sortedYears } = currentExportData;
+            
             // 워크북 생성
             const wb = XLSX.utils.book_new();
             
             // 요약 시트 생성
-            const summaryData = [
-                ['정년퇴직년도', '퇴직예정인원', '비율(%)'],
-                []
-            ];
-            
-            const totalEmployees = employees.length;
-            const sortedYears = Object.keys(yearGroups).sort((a, b) => parseInt(a) - parseInt(b));
-            
-            sortedYears.forEach(year => {
-                const count = yearGroups[year].length;
-                const percentage = ((count / totalEmployees) * 100).toFixed(1);
-                summaryData.push([year + '년', count + '명', percentage + '%']);
-            });
-            
-            summaryData.push([]);
-            summaryData.push(['총 직원 수', totalEmployees + '명', '100.0%']);
-            
             const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-            summaryWs['!cols'] = [{wch: 15}, {wch: 15}, {wch: 10}];
-            XLSX.utils.book_append_sheet(wb, summaryWs, '연도별요약');
+            summaryWs['!cols'] = [{wch: 15}, {wch: 15}];
+            XLSX.utils.book_append_sheet(wb, summaryWs, '연도별인원');
             
             // 각 연도별 상세 시트 생성
             sortedYears.forEach(year => {
@@ -638,7 +801,18 @@
             
             // 파일 다운로드
             const timestamp = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `연도별_정년퇴직_요약_${timestamp}.xlsx`);
+            XLSX.writeFile(wb, `${currentFileName}_${timestamp}.xlsx`);
+        }
+        function exportToExcel(type) {
+            // 기존 함수는 미리보기 기능으로 대체되었습니다
+            // 호환성을 위해 남겨둡니다
+            previewExport(type);
+        }
+        
+        function exportYearlySummary() {
+            // 기존 함수는 미리보기 기능으로 대체되었습니다
+            // 호환성을 위해 남겨둡니다
+            previewYearlySummary();
         }
         
         function formatDate(date) {
