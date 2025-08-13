@@ -174,8 +174,12 @@
             <h3>직원 정보 입력</h3>
             <div class="form-row">
                 <input type="text" id="employeeName" placeholder="직원 이름" />
-                <input type="date" id="birthDate" />
+                <input type="text" id="socialNumber" placeholder="주민번호 앞 6자리 (YYMMDD)" maxlength="6" />
+                <input type="date" id="birthDate" placeholder="또는 생년월일 직접 입력" />
                 <button onclick="addEmployee()">추가</button>
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
+                * 주민번호 앞 6자리 입력 시 생년월일이 자동 계산됩니다 (예: 640315 → 1964-03-15)
             </div>
             
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #bdc3c7;">
@@ -186,7 +190,7 @@
                     <button onclick="downloadTemplate()" style="background: #27ae60;">템플릿 다운로드</button>
                 </div>
                 <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
-                    * 엑셀 파일 형식: A열(이름), B열(생년월일 YYYY-MM-DD) | 첫 번째 행은 제목행으로 처리됩니다
+                    * 엑셀 파일 형식: A열(이름), B열(생년월일 또는 주민번호) | 다양한 형식 지원: YYYY-MM-DD, 주민번호 13자리, 주민번호 앞 6자리
                 </div>
             </div>
         </div>
@@ -236,12 +240,110 @@
         let employees = [];
         const RETIREMENT_AGE = 60;
         
+        function parseVariousDateFormats(input) {
+            if (!input) return null;
+            
+            const inputStr = String(input).trim();
+            
+            // 1. 이미 YYYY-MM-DD 형식인 경우
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (dateRegex.test(inputStr)) {
+                const testDate = new Date(inputStr);
+                if (!isNaN(testDate.getTime())) {
+                    return inputStr;
+                }
+            }
+            
+            // 2. 주민번호 13자리 (123456-1234567 또는 1234561234567)
+            const fullSocialRegex = /^(\d{6})[-]?\d{7}$/;
+            const fullSocialMatch = inputStr.match(fullSocialRegex);
+            if (fullSocialMatch) {
+                return parseSocialNumber(fullSocialMatch[1]);
+            }
+            
+            // 3. 주민번호 앞 6자리만 (123456)
+            const shortSocialRegex = /^\d{6}$/;
+            if (shortSocialRegex.test(inputStr)) {
+                return parseSocialNumber(inputStr);
+            }
+            
+            // 4. 엑셀 시리얼 날짜 (숫자)
+            if (typeof input === 'number' && input > 0) {
+                const excelEpoch = new Date(1900, 0, 1);
+                const birth = new Date(excelEpoch.getTime() + (input - 2) * 86400000);
+                if (!isNaN(birth.getTime())) {
+                    return birth.toISOString().split('T')[0];
+                }
+            }
+            
+            // 5. Date 객체인 경우
+            if (input instanceof Date && !isNaN(input.getTime())) {
+                return input.toISOString().split('T')[0];
+            }
+            
+            return null;
+        }
+            if (!socialNumber || socialNumber.length !== 6) {
+                return null;
+            }
+            
+            // 숫자만 있는지 확인
+            if (!/^\d{6}$/.test(socialNumber)) {
+                return null;
+            }
+            
+            const year = parseInt(socialNumber.substring(0, 2));
+            const month = parseInt(socialNumber.substring(2, 4));
+            const day = parseInt(socialNumber.substring(4, 6));
+            
+            // 월과 일 유효성 검사
+            if (month < 1 || month > 12 || day < 1 || day > 31) {
+                return null;
+            }
+            
+            // 년도 계산 (일반적으로 00-30은 2000년대, 31-99는 1900년대로 처리)
+            let fullYear;
+            if (year <= 30) {
+                fullYear = 2000 + year;
+            } else {
+                fullYear = 1900 + year;
+            }
+            
+            // 날짜 유효성 최종 검사
+            const testDate = new Date(fullYear, month - 1, day);
+            if (testDate.getFullYear() !== fullYear || 
+                testDate.getMonth() !== month - 1 || 
+                testDate.getDate() !== day) {
+                return null;
+            }
+            
+            return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        }
+        
         function addEmployee() {
             const name = document.getElementById('employeeName').value.trim();
-            const birthDate = document.getElementById('birthDate').value;
+            const socialNumber = document.getElementById('socialNumber').value.trim();
+            let birthDate = document.getElementById('birthDate').value;
             
-            if (!name || !birthDate) {
-                alert('이름과 생년월일을 모두 입력해주세요.');
+            if (!name) {
+                alert('직원 이름을 입력해주세요.');
+                return;
+            }
+            
+            // 주민번호가 입력된 경우 생년월일 자동 계산
+            if (socialNumber) {
+                const parsedBirthDate = parseSocialNumber(socialNumber);
+                if (!parsedBirthDate) {
+                    alert('올바른 주민번호 앞 6자리를 입력해주세요. (예: 640315)');
+                    return;
+                }
+                birthDate = parsedBirthDate;
+                // 계산된 생년월일을 화면에 표시
+                document.getElementById('birthDate').value = birthDate;
+            }
+            
+            if (!birthDate) {
+                alert('주민번호 앞 6자리 또는 생년월일을 입력해주세요.');
                 return;
             }
             
@@ -264,6 +366,7 @@
             
             // 입력 필드 초기화
             document.getElementById('employeeName').value = '';
+            document.getElementById('socialNumber').value = '';
             document.getElementById('birthDate').value = '';
             
             updateDisplay();
@@ -297,24 +400,15 @@
                         if (!row[0] || !row[1]) continue; // 빈 행 건너뛰기
                         
                         const name = String(row[0]).trim();
-                        let birthDateStr = row[1];
+                        const dateInput = row[1];
                         
-                        // 엑셀 날짜 처리
-                        if (typeof birthDateStr === 'number') {
-                            // 엑셀 시리얼 날짜를 JavaScript 날짜로 변환
-                            const excelEpoch = new Date(1900, 0, 1);
-                            const birth = new Date(excelEpoch.getTime() + (birthDateStr - 2) * 86400000);
-                            birthDateStr = birth.toISOString().split('T')[0];
-                        } else if (birthDateStr instanceof Date) {
-                            birthDateStr = birthDateStr.toISOString().split('T')[0];
-                        } else {
-                            // 문자열인 경우 날짜 형식 검증
-                            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                            if (!dateRegex.test(birthDateStr)) {
-                                console.error(`잘못된 날짜 형식: ${name} - ${birthDateStr}`);
-                                errorCount++;
-                                continue;
-                            }
+                        // 다양한 형식의 날짜/주민번호 처리
+                        const birthDateStr = parseVariousDateFormats(dateInput);
+                        
+                        if (!birthDateStr) {
+                            console.error(`날짜 변환 실패: ${name} - ${dateInput}`);
+                            errorCount++;
+                            continue;
                         }
                         
                         // 중복 확인
@@ -368,10 +462,11 @@
         function downloadTemplate() {
             // 템플릿 데이터 생성
             const templateData = [
-                ['이름', '생년월일'],
+                ['이름', '생년월일 또는 주민번호'],
                 ['홍길동', '1964-03-15'],
-                ['김철수', '1965-07-22'],
-                ['이영희', '1966-12-03']
+                ['김철수', '650722-1234567'],
+                ['이영희', '661203'],
+                ['박민수', '1975-08-10']
             ];
             
             // 워크북 생성
@@ -381,7 +476,7 @@
             // 열 너비 설정
             ws['!cols'] = [
                 {wch: 15}, // 이름 열
-                {wch: 15}  // 생년월일 열
+                {wch: 20}  // 생년월일/주민번호 열
             ];
             
             // 헤더 스타일 적용 (간단한 방법)
@@ -662,7 +757,31 @@
         // 엔터 키 입력 처리
         document.getElementById('employeeName').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                document.getElementById('birthDate').focus();
+                document.getElementById('socialNumber').focus();
+            }
+        });
+        
+        document.getElementById('socialNumber').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addEmployee();
+            }
+        });
+        
+        // 주민번호 입력 시 실시간 생년월일 계산
+        document.getElementById('socialNumber').addEventListener('input', function(e) {
+            const socialNumber = e.target.value.trim();
+            if (socialNumber.length === 6) {
+                const parsedBirthDate = parseSocialNumber(socialNumber);
+                if (parsedBirthDate) {
+                    document.getElementById('birthDate').value = parsedBirthDate;
+                }
+            }
+        });
+        
+        // 생년월일 직접 입력 시 주민번호 필드 초기화
+        document.getElementById('birthDate').addEventListener('input', function(e) {
+            if (e.target.value) {
+                document.getElementById('socialNumber').value = '';
             }
         });
         
