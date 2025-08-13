@@ -240,7 +240,8 @@
     <div class="container">
         <h1>정년퇴직 관리 시스템</h1>
         <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
-            근로기준법 제19조에 따른 법정 정년 60세 기준
+            근로기준법 제19조에 따른 법정 정년 60세 기준<br>
+            <small style="color: #95a5a6;">* 정년퇴직일: 생일이 속한 달의 말일</small>
         </p>
         
         <div style="text-align: center; margin-bottom: 20px; font-size: 12px; color: #95a5a6;">
@@ -294,7 +295,7 @@
                     <button onclick="previewExport('all')" style="background: #27ae60;">전체 데이터 미리보기</button>
                     <button onclick="previewExport('thisYear')" style="background: #e74c3c;">올해 정년퇴직자 미리보기</button>
                     <button onclick="previewExport('nextYear')" style="background: #f39c12;">내년 정년퇴직자 미리보기</button>
-                    <button onclick="previewYearlySummary()" style="background: #9b59b6;">연도별 요약 미리보기</button>
+                    <button onclick="previewYearlySummary()" style="background: #9b59b6;">연도별 인원 미리보기</button>
                 </div>
             </div>
         </div>
@@ -419,7 +420,15 @@
         function calculateRetirementDate(birthDate) {
             const retirement = new Date(birthDate);
             retirement.setFullYear(retirement.getFullYear() + RETIREMENT_AGE);
-            return retirement;
+            
+            // 생일이 속한 달의 말일로 설정
+            const year = retirement.getFullYear();
+            const month = retirement.getMonth();
+            
+            // 다음 달의 첫째 날에서 하루를 빼면 현재 달의 마지막 날
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            
+            return lastDayOfMonth;
         }
         
         function addEmployee() {
