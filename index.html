@@ -325,42 +325,12 @@
             
             return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         }
-            if (!socialNumber || socialNumber.length !== 6) {
-                return null;
-            }
-            
-            // 숫자만 있는지 확인
-            if (!/^\d{6}$/.test(socialNumber)) {
-                return null;
-            }
-            
-            const year = parseInt(socialNumber.substring(0, 2));
-            const month = parseInt(socialNumber.substring(2, 4));
-            const day = parseInt(socialNumber.substring(4, 6));
-            
-            // 월과 일 유효성 검사
-            if (month < 1 || month > 12 || day < 1 || day > 31) {
-                return null;
-            }
-            
-            // 년도 계산 (일반적으로 00-30은 2000년대, 31-99는 1900년대로 처리)
-            let fullYear;
-            if (year <= 30) {
-                fullYear = 2000 + year;
-            } else {
-                fullYear = 1900 + year;
-            }
-            
-            // 날짜 유효성 최종 검사
-            const testDate = new Date(fullYear, month - 1, day);
-            if (testDate.getFullYear() !== fullYear || 
-                testDate.getMonth() !== month - 1 || 
-                testDate.getDate() !== day) {
-                return null;
-            }
-            
-            return `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         
+        function calculateRetirementDate(birthDate) {
+            const retirement = new Date(birthDate);
+            retirement.setFullYear(retirement.getFullYear() + RETIREMENT_AGE);
+            return retirement;
+        }
         
         function addEmployee() {
             const name = document.getElementById('employeeName').value.trim();
@@ -669,12 +639,6 @@
             // 파일 다운로드
             const timestamp = new Date().toISOString().slice(0, 10);
             XLSX.writeFile(wb, `연도별_정년퇴직_요약_${timestamp}.xlsx`);
-        }
-        
-        function calculateRetirementDate(birthDate) {
-            const retirement = new Date(birthDate);
-            retirement.setFullYear(retirement.getFullYear() + RETIREMENT_AGE);
-            return retirement;
         }
         
         function formatDate(date) {
